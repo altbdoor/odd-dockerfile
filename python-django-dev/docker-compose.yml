@@ -1,0 +1,46 @@
+services:
+  pg_database:
+    container_name: the_pg_database
+    image: postgres:16-alpine
+    ports:
+      - "52450:5432"
+    environment:
+      POSTGRES_DB: nice_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - db_volume:/var/lib/postgresql/data/
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -d $${POSTGRES_DB} -U $${POSTGRES_USER}"]
+      interval: 2s
+      timeout: 5s
+      retries: 5
+  django:
+    container_name: the_django
+    image: custom-django:latest
+    build:
+      context: ./
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    depends_on:
+      pg_database:
+        condition: service_healthy
+    environment:
+      DJANGO_DATABASE_HOST: pg_database
+      DJANGO_DATABASE_NAME: nice_db
+      DJANGO_DATABASE_USER: postgres
+      DJANGO_DATABASE_PASSWORD: postgres
+    # used for writing on host volume with same UID, where DOCKER_USER="$(id -u):$(id -g)"
+    # user: "${DOCKER_USER}"
+    volumes:
+      - ./backend:/app/
+    command:
+      - "sh"
+      - "-c"
+      - |
+        python manage.py migrate
+        exec python manage.py runserver 0.0.0.0:8000
+
+volumes:
+  db_volume: {}

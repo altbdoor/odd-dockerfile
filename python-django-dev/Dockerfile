@@ -20,6 +20,7 @@ WORKDIR /app
 FROM base_py AS base_with_deps
 
 # build dependencies for psycopg2
+# note: please use psycopg2-binary ffs
 RUN apt-get install -y -q --no-install-recommends python3.9-dev build-essential \
     && pip install wheel
 
